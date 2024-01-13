@@ -3,7 +3,7 @@
 - `routes/`: Contains route configurations.
 - `handlers/`: Handles HTTP requests, interacts with services.
 - `models/`: Defines your data models.
-- `schemas/`: Defines your data models.
+- `schemas/`: Defines your user request schema.
 - `services/`: Contains business logic.
 - `repositories/`: Manages database interactions.
 - `database.rs`: Sets up the database connection using SQLx.
