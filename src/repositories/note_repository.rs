@@ -2,7 +2,7 @@ use actix_web::web::Json;
 use sqlx::{mysql::MySqlQueryResult, MySqlPool};
 
 use crate::{
-    models::note::{NoteDTO, NoteModel},
+    models::note::NoteModel,
     schemas::note::{CreateNoteSchema, UpdateNoteSchema},
 };
 
@@ -93,4 +93,22 @@ pub async fn update_note(
     .await?;
 
     Ok(new_note)
+}
+
+pub async fn delete_note(
+    note_id: &String,
+    pool: MySqlPool,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+    let query_result = sqlx::query_as!(
+        NoteModel,
+        r#"
+        DELETE FROM notes 
+        WHERE id = ?
+    "#,
+        note_id,
+    )
+    .execute(&pool)
+    .await?;
+
+    Ok(query_result)
 }

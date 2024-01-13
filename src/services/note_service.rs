@@ -63,4 +63,10 @@ impl NoteService {
 
         Ok(query_result?)
     }
+
+    pub async fn delete_note(&self, note_id: &String) -> Result<MySqlQueryResult, sqlx::Error> {
+        let query_result = note_repository::delete_note(&note_id, self.pool.clone()).await;
+
+        Ok(query_result?)
+    }
 }

@@ -1,4 +1,4 @@
-use actix_web::{get, patch, post, web, HttpResponse, Responder};
+use actix_web::{delete, get, patch, post, web, HttpResponse, Responder};
 use serde_json::json;
 
 use crate::{
@@ -162,5 +162,34 @@ async fn edit_note(
             "status":"error",
             "message":format!("{:?}", e)
         })),
+    }
+}
+
+#[delete("/note/{id}")]
+async fn delete_note(path: web::Path<uuid::Uuid>, data: web::Data<AppState>) -> impl Responder {
+    let note_id = path.into_inner().to_string();
+
+    let note_service = NoteService::new(data.db.clone());
+
+    match note_service.delete_note(&note_id).await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                let message = format!("Note with ID: {} not found", note_id);
+
+                HttpResponse::NotFound().json(json!({
+                    "status":"fail",
+                    "message": message}))
+            } else {
+                HttpResponse::NoContent().finish()
+            }
+        }
+        Err(e) => {
+            let message = format!("Internal server error: {}", e);
+
+            HttpResponse::InternalServerError().json(json!({
+                "status": "error",
+                "message": message
+            }))
+        }
     }
 }
