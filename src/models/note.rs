@@ -12,18 +12,6 @@ pub struct NoteModel {
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[allow(non_snake_case)]
-pub struct NoteDTO {
-    pub id: String,
-    pub title: String,
-    pub content: String,
-    pub category: String,
-    pub published: bool,
-    pub createdAt: chrono::DateTime<chrono::Utc>,
-    pub updatedAt: chrono::DateTime<chrono::Utc>,
-}
-
 impl Into<NoteDTO> for NoteModel {
     fn into(self) -> NoteDTO {
         NoteDTO {
@@ -36,6 +24,18 @@ impl Into<NoteDTO> for NoteModel {
             updatedAt: self.updated_at.unwrap(),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct NoteDTO {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub category: String,
+    pub published: bool,
+    pub createdAt: chrono::DateTime<chrono::Utc>,
+    pub updatedAt: chrono::DateTime<chrono::Utc>,
 }
 
 impl Into<NoteModel> for NoteDTO {

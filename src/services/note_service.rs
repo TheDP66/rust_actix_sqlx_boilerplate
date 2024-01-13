@@ -2,7 +2,9 @@ use actix_web::web::Json;
 use sqlx::{mysql::MySqlQueryResult, MySqlPool};
 
 use crate::{
-    models::note::NoteDTO, repositories::note_repository, schemas::note::CreateNoteSchema,
+    models::note::{NoteDTO, NoteModel},
+    repositories::note_repository,
+    schemas::note::CreateNoteSchema,
 };
 
 #[derive(Debug)]
@@ -21,66 +23,39 @@ impl NoteService {
         body: Json<CreateNoteSchema>,
     ) -> Result<MySqlQueryResult, String> {
         let query_result = note_repository::insert_note(&note_id, &body, self.pool.clone()).await;
-
         Ok(query_result?)
-
-        // if let Err(err) = query_result.await {
-        //     if err.contains("Duplicate entry") {
-        //         return HttpResponse::BadRequest().json(serde_json::json!({
-        //             "status": "fail",
-        //             "message":"Note with that title already exists"
-        //         }));
-        //     }
-
-        //     return HttpResponse::InternalServerError().json(serde_json::json!({
-        //         "status":"error",
-        //         "message": format!("{:?}", err)
-        //     }));
-        // };
-
-        // let query_result = note_repository::get_note_by_id(note_id, self.pool.clone());
-        // match query_result.await {
-        //     Ok(note) => {
-        //         let note_response = serde_json::json!({
-        //             "status": "success",
-        //             "data" : serde_json::json!({
-        //                 "note": note
-        //             })
-        //         });
-
-        //         HttpResponse::Ok().json(note_response)
-        //     }
-        //     Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
-        //         "status": "error",
-        //         "message": format!("{:?}", e)
-        //     })),
-        // }
     }
 
     pub async fn get_note_by_id(&self, note_id: &String) -> Result<NoteDTO, sqlx::Error> {
         let note = note_repository::get_note_by_id(&note_id, self.pool.clone()).await?;
+        Ok(format_note_model(&note))
+    }
 
-        Ok(note.into())
+    pub async fn get_list_note(
+        &self,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<NoteDTO>, sqlx::Error> {
+        let notes = note_repository::get_list_note(limit, offset, self.pool.clone()).await;
 
-        // let query_result = get_note_by_id(&note_id, &data);
+        let note_response = notes
+            .unwrap()
+            .iter()
+            .map(|note| format_note_model(&note))
+            .collect::<Vec<NoteDTO>>();
 
-        // match query_result.await {
-        //     Ok(note) => {
-        //         let note_dto: NoteDTO = note.into();
+        Ok(note_response)
+    }
+}
 
-        //         let note_response = serde_json::json!({
-        //             "status": "success",
-        //             "data" : serde_json::json!({
-        //                 "note": note_dto
-        //             })
-        //         });
-
-        //         HttpResponse::Ok().json(note_response)
-        //     }
-        //     Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
-        //         "status": "error",
-        //         "message": format!("{:?}", e)
-        //     })),
-        // }
+fn format_note_model(note: &NoteModel) -> NoteDTO {
+    NoteDTO {
+        id: note.id.to_owned(),
+        title: note.title.to_owned(),
+        content: note.content.to_owned(),
+        category: note.category.to_owned().unwrap(),
+        published: note.published != 0,
+        createdAt: note.created_at.unwrap(),
+        updatedAt: note.updated_at.unwrap(),
     }
 }

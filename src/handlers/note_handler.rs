@@ -1,7 +1,11 @@
-use actix_web::{post, web, HttpResponse, Responder};
+use std::os::unix::raw::off_t;
+
+use actix_web::{get, post, web, HttpResponse, Responder};
 
 use crate::{
-    models::note::NoteDTO, schemas::note::CreateNoteSchema, services::note_service::NoteService,
+    models::note::NoteDTO,
+    schemas::{filter_options::FilterOptions, note::CreateNoteSchema},
+    services::note_service::{self, NoteService},
     AppState,
 };
 
@@ -29,9 +33,7 @@ async fn create_note_handler(
     }
 
     match note_service.get_note_by_id(&note_id).await {
-        Ok(note) => {
-            let note_dto: NoteDTO = note.into();
-
+        Ok(note_dto) => {
             let note_response = serde_json::json!({
                 "status": "success",
                 "data" : serde_json::json!({
@@ -46,44 +48,38 @@ async fn create_note_handler(
             "message": format!("{:?}", e)
         })),
     }
+}
 
-    // let query_result = insert_note(&body, &data);
+#[get("/notes")]
+async fn note_list_handler(
+    opts: web::Query<FilterOptions>,
+    data: web::Data<AppState>,
+) -> impl Responder {
+    let limit = opts.limit.unwrap_or(10);
+    let offset = (opts.page.unwrap_or(1) - 1) * limit;
 
-    // if let Err(err) = query_result.await {
-    //     if err.contains("Duplicate entry") {
-    //         return HttpResponse::BadRequest().json(serde_json::json!({
-    //             "status": "fail",
-    //             "message":"Note with that title already exists"
-    //         }));
-    //     }
+    let note_service = NoteService::new(data.db.clone());
 
-    //     return HttpResponse::InternalServerError().json(serde_json::json!({
-    //         "status":"error",
-    //         "message": format!("{:?}", err)
-    //     }));
-    // }
-
-    // let query_result = get_note_by_id(&note_id, &data);
-
-    // match query_result.await {
-    //     Ok(note) => {
-    //         let note_dto: NoteDTO = note.into();
-
-    //         let note_response = serde_json::json!({
-    //             "status": "success",
-    //             "data" : serde_json::json!({
-    //                 "note": note_dto
-    //             })
-    //         });
-
-    //         HttpResponse::Ok().json(note_response)
-    //     }
-    //     Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
-    //         "status": "error",
-    //         "message": format!("{:?}", e)
-    //     })),
-    // }
+    match note_service.get_list_note(limit, offset).await {
+        Ok(notes) => HttpResponse::Ok().json(serde_json::json!({
+            "status": "success",
+            "data": serde_json::json!({
+            "result": notes.len(),
+            "notes": notes
+            })
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "status": "error",
+            "message": format!("{:?}", e)
+        })),
+    }
 }
 
 // #[get("/note/{id}")]
-// async fn get_note_by_id(data: web::Data<AppState>) -> impl Responder {}
+// async fn get_note_by_id(
+//     opts: web::Query<FilterOptions>,
+//     data: web::Data<AppState>,
+// ) -> impl Responder {
+
+//     match note_service.get_note_by_id(note_id) {}
+// }

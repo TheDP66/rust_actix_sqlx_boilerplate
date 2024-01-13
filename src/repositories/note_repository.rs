@@ -39,3 +39,23 @@ pub async fn get_note_by_id(note_id: &String, pool: MySqlPool) -> Result<NoteMod
 
     Ok(note)
 }
+
+pub async fn get_list_note(
+    limit: usize,
+    offset: usize,
+    pool: MySqlPool,
+) -> Result<Vec<NoteModel>, sqlx::Error> {
+    let notes = sqlx::query_as!(
+        NoteModel,
+        r#"
+        SELECT * FROM notes ORDER by id LIMIT ? OFFSET ? 
+    "#,
+        limit as i32,
+        offset as i32,
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    Ok(notes)
+}
