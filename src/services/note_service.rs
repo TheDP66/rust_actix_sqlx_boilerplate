@@ -4,7 +4,8 @@ use sqlx::{mysql::MySqlQueryResult, MySqlPool};
 use crate::{
     models::note::{NoteDTO, NoteModel},
     repositories::note_repository,
-    schemas::note::CreateNoteSchema,
+    schemas::note::{CreateNoteSchema, UpdateNoteSchema},
+    utils::dtos::format_note_model,
 };
 
 #[derive(Debug)]
@@ -23,12 +24,14 @@ impl NoteService {
         body: Json<CreateNoteSchema>,
     ) -> Result<MySqlQueryResult, String> {
         let query_result = note_repository::insert_note(&note_id, &body, self.pool.clone()).await;
+
         Ok(query_result?)
     }
 
-    pub async fn get_note_by_id(&self, note_id: &String) -> Result<NoteDTO, sqlx::Error> {
+    pub async fn get_note_by_id(&self, note_id: &String) -> Result<NoteModel, sqlx::Error> {
         let note = note_repository::get_note_by_id(&note_id, self.pool.clone()).await?;
-        Ok(format_note_model(&note))
+
+        Ok(note)
     }
 
     pub async fn get_list_note(
@@ -46,16 +49,18 @@ impl NoteService {
 
         Ok(note_response)
     }
-}
 
-fn format_note_model(note: &NoteModel) -> NoteDTO {
-    NoteDTO {
-        id: note.id.to_owned(),
-        title: note.title.to_owned(),
-        content: note.content.to_owned(),
-        category: note.category.to_owned().unwrap(),
-        published: note.published != 0,
-        createdAt: note.created_at.unwrap(),
-        updatedAt: note.updated_at.unwrap(),
+    pub async fn update_note(
+        &self,
+        body: Json<UpdateNoteSchema>,
+        note: NoteModel,
+        i8_published: i8,
+        note_id: &String,
+    ) -> Result<MySqlQueryResult, sqlx::Error> {
+        let query_result =
+            note_repository::update_note(body, note, i8_published, note_id, self.pool.clone())
+                .await;
+
+        Ok(query_result?)
     }
 }

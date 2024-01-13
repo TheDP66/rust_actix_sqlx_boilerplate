@@ -1,6 +1,10 @@
+use actix_web::web::Json;
 use sqlx::{mysql::MySqlQueryResult, MySqlPool};
 
-use crate::{models::note::NoteModel, schemas::note::CreateNoteSchema};
+use crate::{
+    models::note::{NoteDTO, NoteModel},
+    schemas::note::{CreateNoteSchema, UpdateNoteSchema},
+};
 
 pub async fn insert_note(
     note_id: &String,
@@ -58,4 +62,35 @@ pub async fn get_list_note(
     .unwrap();
 
     Ok(notes)
+}
+
+pub async fn update_note(
+    body: Json<UpdateNoteSchema>,
+    note: NoteModel,
+    i8_published: i8,
+    note_id: &String,
+    pool: MySqlPool,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+    let new_note = sqlx::query(
+        r#"
+            UPDATE notes SET title = ?, content = ?, category = ?, published = ? WHERE Id = ?
+        "#,
+    )
+    .bind(body.title.to_owned().unwrap_or_else(|| note.title.clone()))
+    .bind(
+        body.content
+            .to_owned()
+            .unwrap_or_else(|| note.content.clone()),
+    )
+    .bind(
+        body.category
+            .to_owned()
+            .unwrap_or_else(|| note.category.clone().unwrap()),
+    )
+    .bind(i8_published)
+    .bind(note_id.to_owned())
+    .execute(&pool)
+    .await?;
+
+    Ok(new_note)
 }
